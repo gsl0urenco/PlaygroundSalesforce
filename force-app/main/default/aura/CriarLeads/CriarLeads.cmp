@@ -1,0 +1,17 @@
+<aura:component controller="CriarLeads" implements="flexipage:availableForAllPageTypes" access="global">
+      <lightning:card title="Novo Lead" iconName="standard:lead">
+        <div class="slds-p-around_medium">
+            <lightning:input aura:id="Nome" label="Nome" placeholder="Digite o seu nome ..." />
+            <lightning:input aura:id="Sobrenome" label="Sobrenome" placeholder="Digite o seu sobrenome ..." required="true"/>
+            <lightning:input aura:id="email" label="Email" type="email" placeholder="teste@teste.com.br" />
+            <lightning:input aura:id="empresa" label="Empresa" required="true"/>
+            <lightning:textarea aura:id="description" label="Descrição"/>
+            
+            <lightning:button label="Cadastrar Lead" 
+                              onclick="{!c.criarLead}" 
+                              variant="brand" 
+                              class="slds-m-top_small"/>
+        </div>
+    </lightning:card>
+ 
+</aura:component>
