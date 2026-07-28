@@ -36,8 +36,8 @@ jobs:
           # Autentica a Org Principal
           sf org login sfdx-url -f config/auth.txt -a MyOrg --set-default
           
-          # Realiza o deploy direto na Org autenticada (MyOrg)
-          sf project deploy start -o MyOrg
+          # Realiza o deploy dos fontes da pasta force-app na Org autenticada
+          sf project deploy start -d force-app -o MyOrg
           
-          # Executa os testes Apex locais na Org
-          sf apex run test -l RunLocalTests -o MyOrg -c -r human -w 2 --verbose
+          # Executa os testes Apex locais na Org (sem a flag --verbose)
+          sf apex run test -l RunLocalTests -o MyOrg -c -r human -w 2
