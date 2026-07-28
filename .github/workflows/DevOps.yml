@@ -8,7 +8,10 @@ on:
       - master
 
 jobs:
-  # CI: Responsável por rodar o deploy na Org e executar testes unitários
+  # -------------------------------------------------------------
+  # JOB 1: CI (Continuous Integration)
+  # Valida o pacote e roda os testes Apex
+  # -------------------------------------------------------------
   CI:
     runs-on: ubuntu-latest
 
@@ -27,8 +30,8 @@ jobs:
         run: |
           npm install -g @salesforce/cli
 
-      # 4. Autenticação, Deploy e Execução de Testes Apex
-      - name: Validate Package Salesforce
+      # 4. Autenticação e Execução de Testes Apex (Validação)
+      - name: Validate Package and Run Tests
         run: |
           mkdir -p config
           echo "force://${{ secrets.CLI_APP }}::${{ secrets.USER_TOKEN }}@${{ secrets.SF_URL }}" > config/auth.txt
@@ -36,8 +39,40 @@ jobs:
           # Autentica a Org Principal
           sf org login sfdx-url -f config/auth.txt -a MyOrg --set-default
           
-          # Realiza o deploy dos fontes da pasta force-app na Org autenticada
-          sf project deploy start -d force-app -o MyOrg
-          
-          # Executa os testes Apex locais na Org (sem a flag --verbose)
+          # Executa os testes Apex na Org para garantir integridade
           sf apex run test -l RunLocalTests -o MyOrg -c -r human -w 2
+
+  # -------------------------------------------------------------
+  # JOB 2: CD (Continuous Deployment)
+  # Executa o Deploy dos metadados na Org após o sucesso do CI
+  # -------------------------------------------------------------
+  CD:
+    needs: CI # Só executa se o Job de CI passar com sucesso
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout do código fonte
+      - uses: actions/checkout@v4
+
+      # 2. Configura o ambiente Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      # 3. Instala a CLI atualizada da Salesforce
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+
+      # 4. Deploy definitivo dos componentes na Org
+      - name: Deploy Metadata to Target Org
+        run: |
+          mkdir -p config
+          echo "force://${{ secrets.CLI_APP }}::${{ secrets.USER_TOKEN }}@${{ secrets.SF_URL }}" > config/auth.txt
+          
+          # Autentica a Org
+          sf org login sfdx-url -f config/auth.txt -a MyOrg --set-default
+          
+          # Realiza o deploy definitivo dos metadados da pasta force-app
+          sf project deploy start -d force-app -o MyOrg
