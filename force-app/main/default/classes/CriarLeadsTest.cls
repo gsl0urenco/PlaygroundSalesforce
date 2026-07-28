@@ -6,5 +6,6 @@ private class CriarLeadsTest {
         // Chamada de teste simples
         System.assert(true);
         Test.stopTest();
+        
     }
 }
