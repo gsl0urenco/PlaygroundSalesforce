@@ -1,37 +1,42 @@
-#Nome do Workflow
 name: DevOps
-
-#Qual evento irá disparar o workflow
 on:
   push:
     branches:
       - master
 
 jobs:
-  #CI: Responsável por rodar os testes unitários
   CI:
-    #Sistema operacional que será utilizado para rodar o job
     runs-on: ubuntu-latest
-    #Definindo a imagem do container que será utilizado para rodar o job
-    container:
-      image: salesforce/salesforcedx:latest
 
-    #Definindo as etapas do job
     steps:  
       - uses: actions/checkout@v3
-      - name: Validate Package Salesforce
-    #Comando sfdx force:org:display --verbose para validar se a org está conectada  
-    #Link url para autenticar workflow: Sfdx Auth Url    force://PlatformCLI::5Aep861s06Svld5nGbjiyezhgHqyPw8qkIuO9hJxj2fz4nAWZl9fBeAK5ZaQpT4zRbv4QsZuZySSfkKqPsK0VJm@gcar-dev-ed.trailblaze.my.salesforce.com 
-        #run: | ${{ secrets.CLI_APP/USER_TOKEN/SF_URL}} 
-        run: |
-          echo force://${{ secrets.CLI_APP }}::${{ secrets.USER_TOKEN }}@${{ secrets.SF_URL }} >> config/auth.txt
-          sfdx force:auth:sfdxurl:store -f config/auth.txt -s -a MyOrg
-          sfdx force:org:create -f config/project-scratch-def.json -a CIOrg -s -v MyOrg
-          sfdx force:source:push -u CIOrg
-          sfdx force:apex:test:run -l RunLocalTests -u CIOrg -c -r human -w 2 --verbose
-          sfdx force:org:delete -u CIOrg -p
-        #Secrets armazenadas dentro do repositório do GitHub, para não expor informações sensíveis. que nada mais é do que a URL de autenticação da org Salesforce, que é gerada ao executar o comando sfdx force:org:display --verbose onde o CLI_APP é o PlatformCLI o USER_TOKEN é o token de autenticação da org Salesforce que vai até o @ e o SF_URL é a URL da org Salesforce que é o ultimo da URL EXEMPLO ACIMA: gcar-dev-ed.trailblaze.my.salesforce.com .
 
-# pull_request:
-#  branches:
-#      - master 
+      # 1. Instala o Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/*'
+
+      # 2. Instala a CLI atual da Salesforce (@salesforce/cli)
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+
+      # 3. Executa a validação
+      - name: Validate Package Salesforce
+        run: |
+          mkdir -p config
+          echo "force://${{ secrets.CLI_APP }}::${{ secrets.USER_TOKEN }}@${{ secrets.SF_URL }}" > config/auth.txt
+          
+          # Autenticação (funciona tanto com 'sf' quanto com alias 'sfdx')
+          sf org login sfdx-url -f config/auth.txt -s -a MyOrg
+          
+          # Criação da Scratch Org e Deploy
+          sf org create scratch -f config/project-scratch-def.json -a CIOrg -s -v MyOrg
+          sf project deploy start -o CIOrg
+          
+          # Execução de Testes Apex
+          sf apex run test -l RunLocalTests -o CIOrg -c -r human -w 2 --verbose
+          
+          # Deleção da Scratch Org
+          sf org delete scratch -o CIOrg --no-prompt
