@@ -8,7 +8,7 @@ on:
       - master
 
 jobs:
-  # CI: Responsável por rodar o deploy na Scratch Org e executar testes unitários
+  # CI: Responsável por rodar o deploy na Org e executar testes unitários
   CI:
     runs-on: ubuntu-latest
 
@@ -27,21 +27,17 @@ jobs:
         run: |
           npm install -g @salesforce/cli
 
-      # 4. Autenticação, criação da Scratch Org, Deploy e Testes Apex
+      # 4. Autenticação, Deploy e Execução de Testes Apex
       - name: Validate Package Salesforce
         run: |
           mkdir -p config
           echo "force://${{ secrets.CLI_APP }}::${{ secrets.USER_TOKEN }}@${{ secrets.SF_URL }}" > config/auth.txt
           
-          # Autentica a Dev Hub / Org Principal
-          sf org login sfdx-url -f config/auth.txt --set-default-dev-hub -a MyOrg
+          # Autentica a Org Principal
+          sf org login sfdx-url -f config/auth.txt -a MyOrg --set-default
           
-          # Cria a Scratch Org vinculada à MyOrg (-d 1 define a duração para 1 dia)
-          sf org create scratch -f config/project-scratch-def.json -a CIOrg -v MyOrg -d 1
+          # Realiza o deploy direto na Org autenticada (MyOrg)
+          sf project deploy start -o MyOrg
           
-          # Envia as fontes e executa os testes Apex
-          sf project deploy start -o CIOrg
-          sf apex run test -l RunLocalTests -o CIOrg -c -r human -w 2 --verbose
-          
-          # Remove a Scratch Org ao final da execução
-          sf org delete scratch -o CIOrg --no-prompt
+          # Executa os testes Apex locais na Org
+          sf apex run test -l RunLocalTests -o MyOrg -c -r human -w 2 --verbose
