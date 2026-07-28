@@ -1,42 +1,47 @@
+# Nome do Workflow
 name: DevOps
+
+# Evento que dispara a pipeline
 on:
   push:
     branches:
       - master
 
 jobs:
+  # CI: Responsável por rodar o deploy na Scratch Org e executar testes unitários
   CI:
     runs-on: ubuntu-latest
 
     steps:  
-      - uses: actions/checkout@v3
+      # 1. Checkout do código fonte
+      - uses: actions/checkout@v4
 
-      # 1. Instala o Node.js
+      # 2. Configura o ambiente Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 
-      # 2. Instala a CLI atual da Salesforce (@salesforce/cli)
+      # 3. Instala a CLI atualizada da Salesforce
       - name: Install Salesforce CLI
         run: |
           npm install -g @salesforce/cli
 
-      # 3. Executa a validação
+      # 4. Autenticação, criação da Scratch Org, Deploy e Testes Apex
       - name: Validate Package Salesforce
         run: |
           mkdir -p config
           echo "force://${{ secrets.CLI_APP }}::${{ secrets.USER_TOKEN }}@${{ secrets.SF_URL }}" > config/auth.txt
           
-          # Autenticação (funciona tanto com 'sf' quanto com alias 'sfdx')
-          sf org login sfdx-url -f config/auth.txt -s -a MyOrg
+          # Autentica a Dev Hub / Org Principal
+          sf org login sfdx-url -f config/auth.txt --set-default-dev-hub -a MyOrg
           
-          # Criação da Scratch Org e Deploy
-          sf org create scratch -f config/project-scratch-def.json -a CIOrg -s -v MyOrg
+          # Cria a Scratch Org usando -y para definir como padrão sem acionar snapshot
+          sf org create scratch -f config/project-scratch-def.json -a CIOrg -y -v MyOrg
+          
+          # Envia as fontes e executa os testes Apex
           sf project deploy start -o CIOrg
-          
-          # Execução de Testes Apex
           sf apex run test -l RunLocalTests -o CIOrg -c -r human -w 2 --verbose
           
-          # Deleção da Scratch Org
+          # Remove a Scratch Org ao final da execução
           sf org delete scratch -o CIOrg --no-prompt
