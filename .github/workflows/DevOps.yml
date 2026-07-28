@@ -36,8 +36,8 @@ jobs:
           # Autentica a Dev Hub / Org Principal
           sf org login sfdx-url -f config/auth.txt --set-default-dev-hub -a MyOrg
           
-          # Cria a Scratch Org usando -y para definir como padrão sem acionar snapshot
-          sf org create scratch -f config/project-scratch-def.json -a CIOrg -y -v MyOrg
+          # Cria a Scratch Org vinculada à MyOrg (-d 1 define a duração para 1 dia)
+          sf org create scratch -f config/project-scratch-def.json -a CIOrg -v MyOrg -d 1
           
           # Envia as fontes e executa os testes Apex
           sf project deploy start -o CIOrg
